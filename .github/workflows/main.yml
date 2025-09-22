@@ -1,0 +1,24 @@
+name: Listen for Status Change
+
+on:
+  projects_v2_item:
+    types: [edited]
+
+jobs:
+  on-status-change:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump event payload
+        run: echo "${{ toJson(github.event) }}"
+
+      - name: Check for specific project
+        id: 2
+        run: |
+          # Replace the example project ID below with your actual project's ID!
+          TARGET_PROJECT_ID="PVT_kwDOA6uF6M4AFmKq" # Example format
+          if [[ "${{ github.event.projects_v2_item.project_node_id }}" != "$TARGET_PROJECT_ID" ]]; then
+            echo "Not the target project. Skipping."
+            exit 78  # Special exit code to mark job as skipped
+          fi
+          echo "Matched target project. Proceeding."
+      # Add further steps here that only run if project matches
