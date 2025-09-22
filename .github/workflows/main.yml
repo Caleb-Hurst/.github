@@ -1,24 +1,27 @@
-name: Listen for Status Change
+name: Send Un-tested Tickets to QA
 
 on:
-  project_card:
-    types: [moved]
+  workflow_dispatch:
 
 jobs:
-  on-status-change:
+  send-tickets-to-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Dump event payload
-        run: echo "${{ toJson(github.event) }}"
-
-      - name: Check for specific project
-        id: check_project
+      - name: Install GitHub CLI and jq
         run: |
-          # Replace the example project ID below with your actual project's ID!
-          TARGET_PROJECT_ID="PVT_kwDOA6uF6M4AFmKq" # Example format
-          if [[ "${{ github.event.projects_v2_item.project_node_id }}" != "$TARGET_PROJECT_ID" ]]; then
-            echo "Not the target project. Skipping."
-            exit 78  # Special exit code to mark job as skipped
-          fi
-          echo "Matched target project. Proceeding."
-      # Add further steps here that only run if project matches
+          sudo apt-get update
+          sudo apt-get install -y gh jq
+
+      - name: Find tickets that need testing
+        run: |
+          gh issue list --label "status:needs-test" --json number > issues.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on tickets
+        run: |
+          for number in $(jq -r '.[].number' issues.json); do
+            gh issue comment $number --body "Sending to QA for testing."
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
